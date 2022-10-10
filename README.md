@@ -27,3 +27,12 @@ html = mjml2html('''
 </mjml>
 ''')
 ```
+
+## Development
+
+```sh
+python -m venv env
+. env/bin/activate
+pip install -r requirements.txt
+maturin develop
+```
