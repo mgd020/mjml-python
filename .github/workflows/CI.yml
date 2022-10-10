@@ -6,6 +6,8 @@ on:
       - main
       - master
   pull_request:
+  release:
+    types: [published]
 
 jobs:
   linux:
