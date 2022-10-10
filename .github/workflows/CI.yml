@@ -6,8 +6,6 @@ on:
       - main
       - master
   pull_request:
-  release:
-    types: [published]
 
 jobs:
   linux:
@@ -19,11 +17,6 @@ jobs:
         manylinux: auto
         command: build
         args: --release -o dist --find-interpreter
-    - name: Upload wheels
-      uses: actions/upload-artifact@v2
-      with:
-        name: wheels
-        path: dist
 
   windows:
     runs-on: windows-latest
@@ -33,11 +26,6 @@ jobs:
       with:
         command: build
         args: --release -o dist --find-interpreter
-    - name: Upload wheels
-      uses: actions/upload-artifact@v2
-      with:
-        name: wheels
-        path: dist
 
   macos:
     runs-on: macos-latest
@@ -47,25 +35,3 @@ jobs:
       with:
         command: build
         args: --release -o dist --universal2 --find-interpreter
-    - name: Upload wheels
-      uses: actions/upload-artifact@v2
-      with:
-        name: wheels
-        path: dist
-
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [ macos, windows, linux ]
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: wheels
-      - name: Publish to PyPI
-        uses: messense/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        with:
-          command: upload
-          args: --skip-existing *
