@@ -1,14 +1,24 @@
 # mjml-python
 
-A Python wrapper for [MRML](https://github.com/jolimail/mrml-core) (Rust port of [MJML](https://github.com/mjmlio/mjml)).
+Compile MJML at runtime without an external Node service/process. It is a Python wrapper for [MRML](https://github.com/jolimail/mrml-core) (Rust port of [MJML](https://github.com/mjmlio/mjml)).
 
-## Installation
+## Why
+
+From [MRML](https://github.com/jolimail/mrml-core#why):
+
+> A Node.js server rendering an MJML template takes around 20 MB of RAM at startup and 130 MB under stress test. In Rust, less than 1.7 MB at startup and a bit less that 3 MB under stress test. The Rust version can also handle twice as many requests per second.
+
+All of that is without considering http transaction cost when using a  node service or process.
+
+## How
+
+Install from [PyPI](https://pypi.org/project/mjml-python/):
 
 ```sh
 pip install mjml-python
 ```
 
-## Usage
+Import `mjml2html` and pass a string to compile: 
 
 ```py
 from mjml import mjml2html
@@ -28,6 +38,26 @@ html = mjml2html('''
 ''')
 ```
 
+**Example using Django templates**
+
+```py
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from mjml import mjml2html
+
+context = {'foo': 'bar'}
+text_message = render_to_string('my_text_template.txt', context)
+html_message = mjml2html(render_to_string('my_mjml_template.mjml', context))
+send_mail(
+    'Subject here',
+    text_message,
+    'from@example.com',
+    ['to@example.com'],
+    fail_silently=False,
+    html_message=html_message,
+)
+```
+
 ## Development
 
 ```sh
@@ -36,3 +66,7 @@ python -m venv env
 pip install -r requirements.txt
 maturin develop
 ```
+
+## Sponsor
+
+[<img width="200" alt="☕️ Buy me a coffee" src="https://user-images.githubusercontent.com/1284133/218304833-8303d67d-fa0d-4385-9ae5-7b3862ee36f8.png">](https://www.buymeacoffee.com/matthew.d)
