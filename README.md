@@ -66,7 +66,3 @@ python -m venv env
 pip install -r requirements.txt
 maturin develop
 ```
-
-## Sponsor
-
-[<img width="200" alt="☕️ Buy me a coffee" src="https://user-images.githubusercontent.com/1284133/218304833-8303d67d-fa0d-4385-9ae5-7b3862ee36f8.png">](https://www.buymeacoffee.com/matthew.d)
