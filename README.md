@@ -23,19 +23,42 @@ Import `mjml2html` and pass a string to compile:
 ```py
 from mjml import mjml2html
 
-html = mjml2html('''
-<mjml>
-  <mj-body>
-    <mj-section>
-      <mj-column>
-        <mj-image width="100px" src="/assets/img/logo-small.png"></mj-image>
-        <mj-divider border-color="#F45E43"></mj-divider>
-        <mj-text font-size="20px" color="#F45E43" font-family="helvetica">Hello World</mj-text>
-      </mj-column>
-    </mj-section>
-  </mj-body>
-</mjml>
-''')
+html = mjml2html(
+    '''
+    <mjml>
+      <mj-body>
+        <mj-section>
+          <mj-column>
+            <mj-image width="100px" src="/assets/img/logo-small.png"></mj-image>
+            <mj-divider border-color="#F45E43"></mj-divider>
+            <!-- Say hello to the user -->
+            <mj-text font-size="20px" color="#F45E43" font-family="Open Sans">Hello World</mj-text>
+          </mj-column>
+        </mj-section>
+         <mj-section>
+          <mj-column>
+            <mj-social font-size="15px" icon-size="30px" mode="horizontal">
+              <mj-social-element name="facebook" href="https://mjml.io/">
+                Facebook
+              </mj-social-element>
+              <mj-social-element name="google" href="https://mjml.io/">
+                Google
+              </mj-social-element>
+              <mj-social-element  name="twitter" href="https://mjml.io/">
+                Twitter
+              </mj-social-element>
+            </mj-social>
+          </mj-column>
+        </mj-section>
+      </mj-body>
+    </mjml>
+    ''',
+    disable_comments=True,
+    social_icon_origin="https://example.com",
+    fonts={
+        "Open Sans": "https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700",
+        "Ubuntu": "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700",
+    })
 ```
 
 **Example using Django templates**
@@ -57,6 +80,29 @@ send_mail(
     html_message=html_message,
 )
 ```
+
+**Options**
+
+`mjml-python` supports the following options:
+
+| Name                 | Type                     | Default value | Comment                                                                          |
+|----------------------|--------------------------|---------------|----------------------------------------------------------------------------------|
+| `disable_comments`   | `bool`                   | `False`       | Strip comments out of rendered HTML                                              |
+| `social_icon_origin` | `str \| None`            | `None`        | Custom URL origin for social icons. Icon name is appended (e.g. `facebook.png`). |
+| `fonts`              | `dict[str, str] \| None` | `None`        | Fonts imported in the HTML rendered by MJML.                                     |
+
+*Notes* :
+
+- When `fonts` option is set to `None`, the following default fonts will be used: 
+  ```py
+  {
+      "Open Sans": "https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700",
+      "Droid Sans": "https://fonts.googleapis.com/css?family=Droid+Sans:300,400,500,700",
+      "Lato": "https://fonts.googleapis.com/css?family=Lato:300,400,500,700",
+      "Roboto": "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700",
+      "Ubuntu": "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700",
+  }       
+  ```
 
 ## Development
 
