@@ -14,16 +14,14 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        container:  # https://github.com/PyO3/maturin-action#manylinux-docker-container
-          - quay.io/pypa/manylinux2014_x86_64:latest
-          - ghcr.io/rust-cross/manylinux_2_28-cross:aarch64	
+        target: [x86_64, aarch64]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - uses: messense/maturin-action@v1
       with:
         manylinux: auto
-        container: ${{ matrix.container }}
+        target: ${{ matrix.target }}
         command: build
         args: --release -o dist --find-interpreter
     - name: Upload wheels
