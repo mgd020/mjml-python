@@ -11,12 +11,17 @@ on:
 
 jobs:
   linux:
+    strategy:
+      fail-fast: true
+      matrix:
+        target: [x86_64, aarch64]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - uses: messense/maturin-action@v1
       with:
         manylinux: auto
+        target: ${{ matrix.target }}
         command: build
         args: --release -o dist --find-interpreter
     - name: Upload wheels
