@@ -16,7 +16,7 @@ jobs:
       matrix:
         container:  # https://github.com/PyO3/maturin-action#manylinux-docker-container
           - quay.io/pypa/manylinux2014_x86_64:latest
-          - messense/manylinux_2_24-cross:aarch64
+          - ghcr.io/rust-cross/manylinux_2_28-cross:aarch64	
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
