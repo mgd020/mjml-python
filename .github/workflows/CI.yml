@@ -14,14 +14,18 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        target: [x86_64, aarch64]
+        value:
+          - {target: x86_64, manylinux: auto}
+          - {target: aarch64, manylinux: auto}
+          - {target: x86_64-unknown-linux-musl, manylinux: musllinux_1_2}
+          - {target: aarch64-unknown-linux-musl, manylinux: musllinux_1_2}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - uses: messense/maturin-action@v1
       with:
-        manylinux: auto
-        target: ${{ matrix.target }}
+        manylinux: ${{ matrix.value.manylinux }}
+        target: ${{ matrix.value.target }}
         command: build
         args: --release -o dist --find-interpreter
     - name: Upload wheels
