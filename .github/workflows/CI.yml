@@ -23,7 +23,7 @@ jobs:
           - target: x86_64-unknown-linux-musl
             container: quay.io/pypa/musllinux_1_2_x86_64
           - target: aarch64-unknown-linux-musl
-            container: ghcr.io/rust-cross/rust-musl-cross:aarch64-musl
+            container: quay.io/pypa/musllinux_1_2_aarch64
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
