@@ -12,7 +12,7 @@ on:
 jobs:
   linux:
     strategy:
-      # fail-fast: true
+      fail-fast: true
       matrix:
         platform:
           # - target: x86_64
