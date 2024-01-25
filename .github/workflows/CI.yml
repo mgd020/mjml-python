@@ -19,12 +19,10 @@ jobs:
             manylinux: auto
           - target: aarch64
             manylinux: auto
-            container: ghcr.io/rust-cross/manylinux_2_28-cross:aarch64
+            container: ghcr.io/rust-cross/manylinux2014-cross:aarch64
           - target: x86_64-unknown-linux-musl
-            manylinux: musllinux_1_2
             container: quay.io/pypa/musllinux_1_2_x86_64
           - target: aarch64-unknown-linux-musl
-            manylinux: musllinux_1_2
             container: ghcr.io/rust-cross/rust-musl-cross:aarch64-musl
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +35,7 @@ jobs:
         manylinux: ${{ matrix.platform.manylinux }}
         target: ${{ matrix.platform.target }}
         container: ${{ matrix.platform.container }}
-        args: --release -o dist --find-interpreter
+        args: --release -o dist -i 3.12 -i 3.11 -i 3.10 -i 3.9 -i 3.8
     - name: Upload wheels
       uses: actions/upload-artifact@v3
       with:
