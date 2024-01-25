@@ -17,8 +17,8 @@ fn mjml2html(
         Err(e) => return Err(PyValueError::new_err(e.to_string())),
     };
 
-    let default_opts = mrml::prelude::render::Options::default();
-    let opts = mrml::prelude::render::Options {
+    let default_opts = mrml::prelude::render::RenderOptions::default();
+    let opts = mrml::prelude::render::RenderOptions {
         disable_comments,
         social_icon_origin: match social_icon_origin {
             None => default_opts.social_icon_origin,
