@@ -1,10 +1,10 @@
 # mjml-python
 
-Compile MJML at runtime without an external Node service/process. It is a Python wrapper for [MRML](https://github.com/jolimail/mrml-core) (Rust port of [MJML](https://github.com/mjmlio/mjml)).
+Compile MJML at runtime without an external Node service/process. It is a Python wrapper for [MRML](https://github.com/jdrouet/mrml) (Rust port of [MJML](https://github.com/mjmlio/mjml)).
 
 ## Why
 
-From [MRML](https://github.com/jolimail/mrml-core#why):
+From [MRML](https://github.com/jolimail/mrml#why):
 
 > A Node.js server rendering an MJML template takes around 20 MB of RAM at startup and 130 MB under stress test. In Rust, less than 1.7 MB at startup and a bit less that 3 MB under stress test. The Rust version can also handle twice as many requests per second.
 

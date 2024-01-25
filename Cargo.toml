@@ -9,5 +9,5 @@ name = "mjml"
 crate-type = ["cdylib"]
 
 [dependencies]
-mrml = "2.0.0-rc3"
+mrml = "3.0.0"
 pyo3 = { version = "0.19.0", features = ["abi3-py37", "extension-module"] }
