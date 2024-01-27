@@ -19,6 +19,7 @@ jobs:
         python -m unittest
 
   linux:
+    needs: [ tests ]
     strategy:
       fail-fast: true
       matrix:
@@ -51,6 +52,7 @@ jobs:
         path: dist
 
   windows:
+    needs: [ tests ]
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
@@ -67,6 +69,7 @@ jobs:
         path: dist
 
   macos:
+    needs: [ tests ]
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v3
