@@ -1,16 +1,25 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-      - master
   pull_request:
   release:
-    types: [published]
 
 jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run tests
+      run: |
+        set -euo pipefail
+        python3 -m venv env
+        source env/bin/activate
+        pip install -r requirements.txt
+        maturin develop
+        python -m unittest
+
   linux:
+    needs: [ tests ]
     strategy:
       fail-fast: true
       matrix:
@@ -43,6 +52,7 @@ jobs:
         path: dist
 
   windows:
+    needs: [ tests ]
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
@@ -59,6 +69,7 @@ jobs:
         path: dist
 
   macos:
+    needs: [ tests ]
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v3
