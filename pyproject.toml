@@ -8,6 +8,7 @@ description = "A Python wrapper for MRML (Rust port of MJML)."
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
