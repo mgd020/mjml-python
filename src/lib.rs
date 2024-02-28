@@ -48,10 +48,7 @@ fn mjml2html(
 
     let render_opts = RenderOptions {
         disable_comments,
-        social_icon_origin: match social_icon_origin {
-            None => None,
-            Some(item) => Some(item.into()),
-        },
+        social_icon_origin: social_icon_origin.map(|item| item.into()),
         fonts: match fonts {
             None => RenderOptions::default().fonts,
             Some(item) => item
