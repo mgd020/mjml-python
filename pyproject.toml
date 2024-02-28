@@ -16,3 +16,6 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/mgd020/mjml-python"
 "Bug Tracker" = "https://github.com/mgd020/mjml-python/issues"
+
+[project.scripts]
+mjml = "mjml:run_cli"
