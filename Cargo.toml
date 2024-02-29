@@ -9,5 +9,9 @@ name = "mjml"
 crate-type = ["cdylib"]
 
 [dependencies]
+clap = "4.5.1"
+clap-verbosity-flag = "2.2.0"
+env_logger = "0.11.2"
+log = "0.4.20"
 mrml = "3.0.0"
 pyo3 = { version = "0.20.2", features = ["abi3-py37", "extension-module"] }

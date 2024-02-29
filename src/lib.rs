@@ -1,24 +1,28 @@
-use mrml;
+use clap::{Parser, ValueHint};
+use clap_verbosity_flag::Verbosity;
+use mrml::mjml::Mjml;
 use mrml::prelude::parser::loader::*;
 use mrml::prelude::parser::*;
-use mrml::prelude::render::*;
+use mrml::prelude::print::Print;
+use mrml::prelude::render::RenderOptions;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::prelude::*;
 use std::io::ErrorKind;
+use std::path::PathBuf;
 
 #[derive(Debug)]
 struct CallbackIncludeLoader(pub PyObject);
 
 impl IncludeLoader for CallbackIncludeLoader {
     fn resolve(&self, path: &str) -> Result<String, IncludeLoaderError> {
-        return Python::with_gil(|py| {
-            match self.0.call1(py, (path,)) {
-                Ok(content) => Ok(content.to_string()),
-                Err(_e) => Err(IncludeLoaderError::new(path, ErrorKind::Other))
-            }
-        });
+        Python::with_gil(|py| match self.0.call1(py, (path,)) {
+            Ok(content) => Ok(content.to_string()),
+            Err(_e) => Err(IncludeLoaderError::new(path, ErrorKind::Other)),
+        })
     }
 }
 
@@ -44,10 +48,7 @@ fn mjml2html(
 
     let render_opts = RenderOptions {
         disable_comments,
-        social_icon_origin: match social_icon_origin {
-            None => None,
-            Some(item) => Some(item.into()),
-        },
+        social_icon_origin: social_icon_origin.map(|item| item.into()),
         fonts: match fonts {
             None => RenderOptions::default().fonts,
             Some(item) => item
@@ -62,8 +63,198 @@ fn mjml2html(
     };
 }
 
+#[derive(Debug, Parser)]
+#[command(author, version, about, long_about = None, override_usage = "Usage: mjml [OPTIONS] [INPUT]...")]
+struct Cli {
+    /// Path to your mjml file
+    #[arg(index = 1, value_hint = ValueHint::FilePath,)]
+    pub input: Vec<String>,
+
+    /// Migratie the input
+    #[arg(short, long, default_value = "false")]
+    pub migrate: bool,
+
+    /// Certify(Validate) the input
+    #[arg(short, long, default_value = "false")]
+    pub certify: bool,
+
+    /// Render and redirect to stdout
+    #[arg(short, long, default_value = "false")]
+    pub stdout: bool,
+
+    /// Render and redirect to file
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Watch for changes and re-render
+    #[arg(short, long, default_value = "false")]
+    pub watch: bool,
+
+    /// Render options
+    #[command(flatten)]
+    render: Render,
+
+    #[command(flatten)]
+    verbose: Verbosity,
+}
+
+#[derive(Debug, Parser, Clone)]
+struct Render {
+    /// Remove comments from html output
+    #[arg(long, required_if_eq_all=[("migrate", "false"), ("certify", "false")])]
+    pub disable_comments: bool,
+    /// Base url for social icons
+    #[clap(long,required_if_eq_all=[("migrate", "false"), ("certify", "false")])]
+    pub social_icon_origin: Option<String>,
+}
+
+impl From<Render> for RenderOptions {
+    fn from(value: Render) -> Self {
+        Self {
+            disable_comments: value.disable_comments,
+            social_icon_origin: value.social_icon_origin.map(Cow::Owned),
+            ..Default::default()
+        }
+    }
+}
+
+fn parse_input_file(input_path: &PathBuf) -> String {
+    let mut input_file = File::open(input_path).expect("Failed to open input file");
+    let mut input_contents = String::new();
+    input_file
+        .read_to_string(&mut input_contents)
+        .expect("Failed to read input file");
+    input_contents
+}
+
+fn parse_mjml(input_contents: &str) -> Mjml {
+    Mjml::parse(input_contents).expect("Error parsing input file")
+}
+
+fn create_and_write_file(path: &str, output: &str) {
+    let mut file = File::create(path).expect("Error creating output file");
+    file.write_all(output.as_bytes())
+        .expect("Error writing to output file");
+}
+
+fn process_cli_args(cli: &Cli) {
+    let input_contents = match cli.input.len() {
+        1 => {
+            panic!("No input file provided");
+        }
+        2 => parse_input_file(&PathBuf::from(&cli.input[1])),
+        _ => {
+            panic!("Only one input file is allowed");
+        }
+    };
+    log::debug!("Input file: {}", input_contents);
+    let root = parse_mjml(&input_contents);
+
+    if cli.certify {
+        println!("⭐⭐⭐ Input file is valid mjml");
+        return;
+    }
+
+    let output = root.print(true, 0, 2);
+    // remove blank lines
+    let output = output
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .collect::<Vec<&str>>()
+        .join("\n");
+    if cli.migrate {
+        let output_file = match &cli.output {
+            None => cli.input[1].clone(),
+            Some(output_path) => output_path.clone(),
+        };
+        create_and_write_file(&output_file, &output);
+        if cli.stdout {
+            println!("{}", output);
+        }
+        return;
+    }
+
+    let render_opts: RenderOptions = cli.render.clone().into();
+    let rendered = root
+        .render(&render_opts)
+        .expect("Error rendering input file");
+    let output_file = match &cli.output {
+        None => cli.input[1].clone().replace(".mjml", ".html"),
+        Some(output_path) => output_path.clone(),
+    };
+    create_and_write_file(&output_file, &rendered);
+    if cli.stdout {
+        println!("{}", rendered);
+    }
+}
+
+#[pyfunction]
+fn run_cli() {
+    let cli = Cli::parse();
+    env_logger::Builder::new()
+        .filter_level(log::LevelFilter::Info)
+        .init();
+    process_cli_args(&cli);
+}
+
 #[pymodule]
 fn mjml(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(mjml2html, m)?)?;
+    m.add_function(wrap_pyfunction!(run_cli, m)?)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::*;
+
+    fn execute_cli(args: Vec<&str>) {
+        let cli = Cli::parse_from(args);
+        println!("{:?}", cli);
+        process_cli_args(&cli)
+    }
+
+    #[test]
+    fn test_parse_input_file() {
+        parse_input_file(&PathBuf::from("tests/fixtures/test_file.mjml"));
+    }
+
+    #[test]
+    fn test_parse_mjml() {
+        parse_mjml("<mjml></mjml>");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_validate_mjml() {
+        parse_mjml("<mjml><a></mjml>");
+    }
+
+    #[test]
+    fn test_process_cli_args() {
+        execute_cli(vec!["_", "mjml", "tests/fixtures/test_file.mjml"]);
+    }
+
+    #[test]
+    fn test_process_cli_args_with_output() {
+        execute_cli(vec![
+            "_",
+            "mjml",
+            "tests/fixtures/test_file.mjml",
+            "--output",
+            "tests/fixtures/new_file.html",
+        ]);
+        assert!(PathBuf::from("tests/fixtures/new_file.html").exists());
+
+        execute_cli(vec![
+            "_",
+            "mjml",
+            "tests/fixtures/test_file.mjml",
+            "--output",
+            "tests/fixtures/new_file.html",
+            "--stdout",
+        ]);
+    }
 }

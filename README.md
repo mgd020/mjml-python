@@ -86,7 +86,7 @@ send_mail(
 `mjml-python` supports the following options:
 
 | Name                 | Type                           | Default value | Comment                                                                          |
-|----------------------|--------------------------------|---------------|----------------------------------------------------------------------------------|
+| -------------------- | ------------------------------ | ------------- | -------------------------------------------------------------------------------- |
 | `disable_comments`   | `bool`                         | `False`       | Strip comments out of rendered HTML                                              |
 | `social_icon_origin` | `str \| None`                  | `None`        | Custom URL origin for social icons. Icon name is appended (e.g. `facebook.png`). |
 | `fonts`              | `dict[str, str] \| None`       | `None`        | Fonts imported in the HTML rendered by MJML.                                     |
@@ -104,6 +104,33 @@ send_mail(
       "Ubuntu": "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700",
   }       
   ```
+
+**Command line**
+
+mjml-python also provides a command line interface to compile MJML files:
+
+```sh
+➜ mjml --help
+Usage: Usage: mjml [OPTIONS] [INPUT]...
+
+Arguments:
+  [INPUT]...  Path to your mjml file
+
+Options:
+  -m, --migrate                                  Migratie the input
+  -c, --certify                                  Certify(Validate) the input
+  -s, --stdout                                   Render and redirect to stdout
+  -o, --output <OUTPUT>                          Render and redirect to file
+  -w, --watch                                    Watch for changes and re-render
+      --disable-comments                         Remove comments from html output
+      --social-icon-origin <SOCIAL_ICON_ORIGIN>  Base url for social icons
+  -v, --verbose...                               Increase logging verbosity
+  -q, --quiet...                                 Decrease logging verbosity
+  -h, --help                                     Print help
+  -V, --version                                  Print version
+```
+
+The interface is similar to the Node.js version of MJML. See [MJML CLI](https://github.com/mjmlio/mjml/blob/master/packages/mjml-cli/README.md#command-line-interface) for more details.
 
 ## Development
 
