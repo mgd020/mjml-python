@@ -64,7 +64,7 @@ fn mjml2html(
 }
 
 #[derive(Debug, Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None, override_usage = "Usage: mjml [OPTIONS] [INPUT]...")]
 struct Cli {
     /// Path to your mjml file
     #[arg(index = 1, value_hint = ValueHint::FilePath,)]
@@ -118,57 +118,43 @@ impl From<Render> for RenderOptions {
     }
 }
 
-fn parse_input_file(input_path: &PathBuf) -> Result<String, std::io::Error> {
-    let mut input_file = File::open(input_path)?;
+fn parse_input_file(input_path: &PathBuf) -> String {
+    let mut input_file = File::open(input_path).expect("Failed to open input file");
     let mut input_contents = String::new();
-    input_file.read_to_string(&mut input_contents)?;
-    Ok(input_contents)
+    input_file
+        .read_to_string(&mut input_contents)
+        .expect("Failed to read input file");
+    input_contents
 }
 
-fn parse_mjml(input_contents: &str) -> Result<Mjml, Error> {
-    Mjml::parse(input_contents)
+fn parse_mjml(input_contents: &str) -> Mjml {
+    Mjml::parse(input_contents).expect("Error parsing input file")
 }
 
 fn create_and_write_file(path: &str, output: &str) {
-    match File::create(path) {
-        Ok(mut file) => match file.write_all(output.as_bytes()) {
-            Ok(_) => (),
-            Err(e) => {
-                eprintln!("Error writing to output file: {}", e);
-                std::process::exit(1);
-            }
-        },
-        Err(e) => {
-            eprintln!("Error creating output file: {}", e);
-            std::process::exit(1);
-        }
-    }
+    let mut file = File::create(path).expect("Error creating output file");
+    file.write_all(output.as_bytes())
+        .expect("Error writing to output file");
 }
 
 fn process_cli_args(cli: &Cli) {
     let input_contents = match cli.input.len() {
         1 => {
-            eprintln!("❌ No input file provided");
-            std::process::exit(1);
+            panic!("No input file provided");
         }
-        2 => parse_input_file(&PathBuf::from(&cli.input[1])).expect("❌ Error reading input file"),
+        2 => parse_input_file(&PathBuf::from(&cli.input[1])),
         _ => {
-            eprintln!("❌ Only one input file is allowed");
-            std::process::exit(1);
+            panic!("Only one input file is allowed");
         }
     };
+    log::debug!("Input file: {}", input_contents);
+    let root = parse_mjml(&input_contents);
 
-    let root = match parse_mjml(&input_contents) {
-        Ok(root) => root,
-        Err(e) => {
-            eprintln!("❌ Error parsing input file: {}", e);
-            std::process::exit(1);
-        }
-    };
     if cli.certify {
         println!("⭐⭐⭐ Input file is valid mjml");
-        std::process::exit(0);
+        return;
     }
+
     let output = root.print(true, 0, 2);
     // remove blank lines
     let output = output
@@ -185,13 +171,13 @@ fn process_cli_args(cli: &Cli) {
         if cli.stdout {
             println!("{}", output);
         }
-        std::process::exit(0);
+        return;
     }
 
     let render_opts: RenderOptions = cli.render.clone().into();
     let rendered = root
         .render(&render_opts)
-        .expect("❌ Error rendering input file");
+        .expect("Error rendering input file");
     let output_file = match &cli.output {
         None => cli.input[1].clone().replace(".mjml", ".html"),
         Some(output_path) => output_path.clone(),
@@ -216,4 +202,59 @@ fn mjml(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(mjml2html, m)?)?;
     m.add_function(wrap_pyfunction!(run_cli, m)?)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::*;
+
+    fn execute_cli(args: Vec<&str>) {
+        let cli = Cli::parse_from(args);
+        println!("{:?}", cli);
+        process_cli_args(&cli)
+    }
+
+    #[test]
+    fn test_parse_input_file() {
+        parse_input_file(&PathBuf::from("tests/fixtures/test_file.mjml"));
+    }
+
+    #[test]
+    fn test_parse_mjml() {
+        parse_mjml("<mjml></mjml>");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_validate_mjml() {
+        parse_mjml("<mjml><a></mjml>");
+    }
+
+    #[test]
+    fn test_process_cli_args() {
+        execute_cli(vec!["_", "mjml", "tests/fixtures/test_file.mjml"]);
+    }
+
+    #[test]
+    fn test_process_cli_args_with_output() {
+        execute_cli(vec![
+            "_",
+            "mjml",
+            "tests/fixtures/test_file.mjml",
+            "--output",
+            "tests/fixtures/new_file.html",
+        ]);
+        assert!(PathBuf::from("tests/fixtures/new_file.html").exists());
+
+        execute_cli(vec![
+            "_",
+            "mjml",
+            "tests/fixtures/test_file.mjml",
+            "--output",
+            "tests/fixtures/new_file.html",
+            "--stdout",
+        ]);
+    }
 }
