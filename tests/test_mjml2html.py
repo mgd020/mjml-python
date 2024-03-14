@@ -90,19 +90,38 @@ class TestFonts(unittest.TestCase):
 
 
 class TestIncludeLoader(unittest.TestCase):
-    outer_string = """
-        <mjml><mj-body><mj-section><mj-column>
-        <mj-include path="inner.mjml" />
-        </mj-column></mj-section></mj-body></mjml>
+    include_string = '<mj-include path="inner.mjml" />'
+
+    outer_string = f"""
+        <mjml>
+            <mj-head>
+                {include_string}
+            </mj-head>
+            <mj-body>
+                <mj-section>
+                <mj-column>
+                    <mj-include path="text.mjml" />
+                </mj-column>
+                </mj-section>
+            </mj-body>
+        </mjml>
     """
 
     inner_string = """
-        <mj-text>Hello World</mj-text>
+        <mj-attributes>
+            <mj-text padding="0" />
+            <mj-class name="blue" color="blue" />
+            <mj-class name="big" font-size="20px" />
+            <mj-all font-family="Arial" />
+        </mj-attributes>
+    """
+
+    text_string = """
+        <mj-text mj-class="blue big">Hello World</mj-text>
     """
 
     def test_ok(self):
-        strings = {"inner.mjml": self.inner_string}
-
+        strings = {"inner.mjml": self.inner_string, "text.mjml": self.text_string}
         result = mjml2html(self.outer_string, include_loader=strings.__getitem__)
         self.assertRegex(result, r"^<!doctype html>")
         self.assertRegex(result, r">Hello World<")
@@ -112,3 +131,12 @@ class TestIncludeLoader(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             mjml2html(self.outer_string, include_loader=strings.__getitem__)
         self.assertEqual(str(ctx.exception), "unable to load included template")
+
+    def test_head_attributes(self):
+        strings = {"inner.mjml": self.inner_string, "text.mjml": self.text_string}
+        result = mjml2html(self.outer_string, include_loader=strings.__getitem__)
+        expected = mjml2html(
+            self.outer_string.replace(self.include_string, self.inner_string),
+            include_loader=strings.__getitem__,
+        )
+        self.assertEqual(result, expected)

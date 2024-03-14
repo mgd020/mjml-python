@@ -166,7 +166,7 @@ dependencies = [
 
 [[package]]
 name = "mjml-python"
-version = "1.3.0"
+version = "1.3.1"
 dependencies = [
  "mrml",
  "pyo3",
@@ -174,9 +174,9 @@ dependencies = [
 
 [[package]]
 name = "mrml"
-version = "3.0.0"
+version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "119192bf8e556b94c06ae02afb46680f76704abba2def85e2e5f5f8418b4db81"
+checksum = "11090cceb14c2eaf9d10c1503937b3a53323f322c475f409c1e51a0d86949a8d"
 dependencies = [
  "indexmap",
  "mrml-json-macros",

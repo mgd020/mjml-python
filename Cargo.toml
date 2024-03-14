@@ -1,6 +1,6 @@
 [package]
 name = "mjml-python"
-version = "1.3.0"
+version = "1.3.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -9,5 +9,5 @@ name = "mjml"
 crate-type = ["cdylib"]
 
 [dependencies]
-mrml = "3.0.0"
+mrml = "3.0.4"
 pyo3 = { version = "0.20.2", features = ["abi3-py37", "extension-module"] }
