@@ -100,7 +100,7 @@ class TestIncludeLoader(unittest.TestCase):
             <mj-body>
                 <mj-section>
                 <mj-column>
-                    <mj-text mj-class="blue big">Hello World</mj-text>
+                    <mj-include path="text.mjml" />
                 </mj-column>
                 </mj-section>
             </mj-body>
@@ -116,9 +116,12 @@ class TestIncludeLoader(unittest.TestCase):
         </mj-attributes>
     """
 
-    def test_ok(self):
-        strings = {"inner.mjml": self.inner_string}
+    text_string = """
+        <mj-text mj-class="blue big">Hello World</mj-text>
+    """
 
+    def test_ok(self):
+        strings = {"inner.mjml": self.inner_string, "text.mjml": self.text_string}
         result = mjml2html(self.outer_string, include_loader=strings.__getitem__)
         self.assertRegex(result, r"^<!doctype html>")
         self.assertRegex(result, r">Hello World<")
@@ -130,9 +133,10 @@ class TestIncludeLoader(unittest.TestCase):
         self.assertEqual(str(ctx.exception), "unable to load included template")
 
     def test_head_attributes(self):
-        strings = {"inner.mjml": self.inner_string}
+        strings = {"inner.mjml": self.inner_string, "text.mjml": self.text_string}
         result = mjml2html(self.outer_string, include_loader=strings.__getitem__)
         expected = mjml2html(
-            self.outer_string.replace(self.include_string, self.inner_string)
+            self.outer_string.replace(self.include_string, self.inner_string),
+            include_loader=strings.__getitem__,
         )
         self.assertEqual(result, expected)
