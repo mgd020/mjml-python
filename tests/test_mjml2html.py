@@ -140,3 +140,15 @@ class TestIncludeLoader(unittest.TestCase):
             include_loader=strings.__getitem__,
         )
         self.assertEqual(result, expected)
+
+    def test_include_css(self):
+        mjml = """
+        <mjml>
+            <mj-head>
+                <mj-include path="styles.css" type="css" />
+            </mj-head>
+        </mjml>
+        """
+        strings = {"styles.css": ".some-class { font-family: monospace }"}
+        result = mjml2html(mjml, include_loader=strings.__getitem__)
+        self.assertRegex(result, r"<style type=\"text/css\">.some-class { font-family: monospace }</style>")
