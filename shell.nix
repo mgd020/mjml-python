@@ -9,7 +9,7 @@ pkgs.mkShell {
     ] ++ lib.optional stdenv.isDarwin libiconv;
     shellHook = ''
         export VIRTUAL_ENV_DISABLE_PROMPT=1
-        python -m venv .env
+        python3 -m venv .env
         . .env/bin/activate
         pip install -r requirements.txt
         maturin develop

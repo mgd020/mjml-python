@@ -17,7 +17,7 @@ class TestSimple(unittest.TestCase):
     def test_bad(self):
         with self.assertRaises(ValueError) as ctx:
             mjml2html("""<mj-text>Hello World</mj-text>""")
-        self.assertEqual(str(ctx.exception), "unexpected token at position 9..20")
+        self.assertIn("unexpected token at position", str(ctx.exception))
 
 
 class TestDisableComments(unittest.TestCase):

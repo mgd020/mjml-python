@@ -116,7 +116,7 @@ nix-shell
 With Python 3.7+, Rust and Cargo installed:
 
 ```sh
-python -m venv env
+python3 -m venv env
 source env/bin/activate
 pip install -r requirements.txt
 maturin develop
