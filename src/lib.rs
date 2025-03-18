@@ -56,7 +56,7 @@ fn mjml2html(
                 .collect(),
         },
     };
-    return match root.render(&render_opts) {
+    return match root.element.render(&render_opts) {
         Ok(content) => Ok(content),
         Err(e) => Err(PyValueError::new_err(e.to_string())),
     };
