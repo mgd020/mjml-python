@@ -107,7 +107,7 @@ jobs:
           MATURIN_REPOSITORY_URL: https://test.pypi.org/simple/
         with:
           command: upload
-          args: --skip-existing *
+          args: --skip-existing dist/*
 
   release:
     name: Release
