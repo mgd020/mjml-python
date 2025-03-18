@@ -126,4 +126,4 @@ jobs:
           MATURIN_NON_INTERACTIVE: true
         with:
           command: upload
-          args: --skip-existing *
+          args: --skip-existing dist/*
