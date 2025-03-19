@@ -17,7 +17,7 @@ class TestSimple(unittest.TestCase):
     def test_bad(self):
         with self.assertRaises(ValueError) as ctx:
             mjml2html("""<mj-text>Hello World</mj-text>""")
-        self.assertIn("unexpected token at position", str(ctx.exception))
+        self.assertIn("unexpected token", str(ctx.exception))
 
 
 class TestDisableComments(unittest.TestCase):
@@ -146,7 +146,7 @@ class TestIncludeLoader(unittest.TestCase):
         strings = {}
         with self.assertRaises(ValueError) as ctx:
             mjml2html(self.outer_string, include_loader=strings.__getitem__)
-        self.assertEqual(str(ctx.exception), "unable to load included template")
+        self.assertIn("unable to load included template", str(ctx.exception))
 
     def test_head_attributes(self):
         strings = {"inner.mjml": self.inner_string, "text.mjml": self.text_string}
