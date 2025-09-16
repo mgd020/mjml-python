@@ -63,7 +63,7 @@ fn mjml2html(
 }
 
 #[pymodule]
-fn mjml(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn mjml(_py: Python<'_>, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(mjml2html, m)?)?;
     Ok(())
 }
