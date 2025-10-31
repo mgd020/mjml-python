@@ -43,7 +43,7 @@ fn mjml2html(
         let root = mrml::parse_with_options(input, &parse_opts)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
-        let fonts_map: HashMap<String, Cow<'static, str>> = match fonts {
+        let fonts_map = match fonts {
             None => RenderOptions::default().fonts,
             Some(item) => item
                 .into_iter()
