@@ -18,118 +18,92 @@ jobs:
         pip install -r requirements.txt
         maturin develop
         python -m unittest
-
-  linux:
-    needs: [ tests ]
-    strategy:
-      fail-fast: true
-      matrix:
-        platform:
-          - target: x86_64
-            manylinux: auto
-          - target: aarch64
-            manylinux: auto
-          - target: x86_64-unknown-linux-musl
-            manylinux: musllinux_1_2
-            container: quay.io/pypa/musllinux_1_2_x86_64
-          - target: aarch64-unknown-linux-musl
-            manylinux: musllinux_1_2
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build wheels
-      uses: PyO3/maturin-action@v1
-      with:
-        command: build
-        rust-toolchain: stable
-        manylinux: ${{ matrix.platform.manylinux }}
-        target: ${{ matrix.platform.target }}
-        container: ${{ matrix.platform.container }}
-        args: --release -o dist --find-interpreter
-    - name: Upload wheels
-      uses: actions/upload-artifact@v4
-      with:
-        name: wheel-linux-${{ matrix.platform.target }}
-        path: dist/*
-        retention-days: 1
-
-  windows:
-    needs: [ tests ]
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build wheels
-      uses: PyO3/maturin-action@v1
-      with:
-        command: build
-        rust-toolchain: stable
-        args: --release -o dist --find-interpreter
-    - name: Upload wheels
-      uses: actions/upload-artifact@v4
-      with:
-        name: wheel-windows
-        path: dist/*
-        retention-days: 1
-
-  macos:
-    needs: [ tests ]
-    strategy:
-      fail-fast: true
-      matrix:
-        target:
-          - aarch64-apple-darwin
-          - x86_64-apple-darwin
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build wheels
-      uses: PyO3/maturin-action@v1
-      with:
-        command: build
-        rust-toolchain: stable
-        args: --release -o dist --find-interpreter --target ${{ matrix.target }}
-    - name: Upload wheels
-      uses: actions/upload-artifact@v4
-      with:
-        name: wheel-macos-${{ matrix.target }}
-        path: dist/*
-        retention-days: 1
   
-  test-release:
-    name: Test release
+  build_wheels:
+    needs: [ tests ]
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: linux-manylinux
+            os: ubuntu-latest
+            env:
+              CIBW_ARCHS_LINUX: "x86_64 aarch64"
+              CIBW_MANYLINUX_X86_64: "manylinux_2_28"
+              CIBW_MANYLINUX_AARCH64: "manylinux_2_28"
+          - name: linux-musllinux
+            os: ubuntu-latest
+            env:
+              CIBW_ARCHS_LINUX: "x86_64 aarch64"
+              CIBW_MANYLINUX_X86_64: "musllinux_1_2"
+              CIBW_MANYLINUX_AARCH64: "musllinux_1_2"
+          - name: macos
+            os: macos-latest
+            env:
+              CIBW_ARCHS_MACOS: "x86_64 arm64"
+          - name: windows
+            os: windows-latest
+            env:
+              CIBW_ARCHS_WINDOWS: "AMD64"
+    runs-on: ${{ matrix.os }}
+    env:
+      CIBW_TEST_COMMAND: "python -m unittest discover -s tests -v"
+      # Skip interpreters you don't want
+      CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_i686"
+      # Ensure maturin gets Rust available inside build envs
+      CIBW_BEFORE_ALL_LINUX: >
+        curl https://sh.rustup.rs -sSf | sh -s -- -y &&
+        echo 'source $HOME/.cargo/env' >> $BASH_ENV
+      CIBW_BEFORE_ALL_MACOS: >
+        curl https://sh.rustup.rs -sSf | sh -s -- -y &&
+        echo 'source $HOME/.cargo/env' >> $GITHUB_ENV
+      CIBW_BEFORE_ALL_WINDOWS: >
+        powershell -Command "irm https://win.rustup.rs -UseBasicParsing | iex; rustup-init -y"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build wheels (${{ matrix.name }})
+        uses: pypa/cibuildwheel@v2.21.3
+        env: ${{ matrix.env }}
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.name }}
+          path: dist/*.whl
+          retention-days: 1
+  
+  publish_testpypi:
+    name: Publish to test.pypi.org
     runs-on: ubuntu-latest
-    if: "!startsWith(github.ref, 'refs/tags/')"
-    needs: [ macos, windows, linux ]
+    if: >
+      github.event_name == 'release' && github.event.action == 'published' && github.event.release.prerelease == true
+    needs: [ build_wheels ]
+    permissions:
+      id-token: write
+    environment: testpypi
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
-      - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
-          MATURIN_NON_INTERACTIVE: true
-          MATURIN_REPOSITORY_URL: https://test.pypi.org/legacy/
+      - uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          command: upload
-          args: --skip-existing dist/*
-
-  release:
-    name: Release
+          repository-url: https://test.pypi.org/legacy/
+  
+  publish_pypi:
+    name: Publish to pypi.org
     runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [ macos, windows, linux ]
+    if: >
+      github.event_name == 'release' && github.event.action == 'published' && github.event.release.prerelease == false
+    needs: [ build_wheels ]
+    permissions:
+      id-token: write
+    environment: testpypi
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
-      - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-          MATURIN_NON_INTERACTIVE: true
-        with:
-          command: upload
-          args: --skip-existing dist/*
+      - uses: pypa/gh-action-pypi-publish@release/v1
