@@ -48,14 +48,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CIBW_TEST_COMMAND: "python -m unittest discover -s tests -v"
-      # Skip interpreters you don't want
+      CIBW_BUILD: "cp312-*"
       CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_i686"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - name: Build wheels (${{ matrix.name }})
         uses: pypa/cibuildwheel@v2.21.3
         env: ${{ matrix.env }}
