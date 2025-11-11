@@ -27,32 +27,38 @@ jobs:
         include:
           - name: linux-manylinux
             os: ubuntu-latest
+            targets: x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu
             env:
               CIBW_ARCHS_LINUX: "x86_64 aarch64"
               CIBW_MANYLINUX_X86_64: "manylinux_2_28"
               CIBW_MANYLINUX_AARCH64: "manylinux_2_28"
           - name: linux-musllinux
             os: ubuntu-latest
+            targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
             env:
               CIBW_ARCHS_LINUX: "x86_64 aarch64"
               CIBW_MANYLINUX_X86_64: "musllinux_1_2"
               CIBW_MANYLINUX_AARCH64: "musllinux_1_2"
           - name: macos
             os: macos-latest
+            targets: x86_64-apple-darwin,aarch64-apple-darwin
             env:
               CIBW_ARCHS_MACOS: "x86_64 arm64"
           - name: windows
             os: windows-latest
+            targets: x86_64-pc-windows-msvc
             env:
               CIBW_ARCHS_WINDOWS: "AMD64"
     runs-on: ${{ matrix.os }}
     env:
-      CIBW_TEST_COMMAND: "python -m unittest discover -s tests -v"
       CIBW_BUILD: "cp312-*"
       CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_i686"
+      CIBW_TEST_COMMAND: "python -m unittest discover -s tests -v"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.targets }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
