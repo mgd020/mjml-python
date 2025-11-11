@@ -50,17 +50,9 @@ jobs:
       CIBW_TEST_COMMAND: "python -m unittest discover -s tests -v"
       # Skip interpreters you don't want
       CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_i686"
-      # Ensure maturin gets Rust available inside build envs
-      CIBW_BEFORE_ALL_LINUX: >
-        curl https://sh.rustup.rs -sSf | sh -s -- -y &&
-        echo 'source $HOME/.cargo/env' >> $BASH_ENV
-      CIBW_BEFORE_ALL_MACOS: >
-        curl https://sh.rustup.rs -sSf | sh -s -- -y &&
-        echo 'source $HOME/.cargo/env' >> $GITHUB_ENV
-      CIBW_BEFORE_ALL_WINDOWS: >
-        powershell -Command "irm https://win.rustup.rs -UseBasicParsing | iex; rustup-init -y"
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
