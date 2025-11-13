@@ -27,36 +27,60 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - name: linux-manylinux
+          # x86_64 host, manylinux
+          - name: linux-x86-manylinux
             os: ubuntu-latest
-            targets: x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu
+            targets: x86_64-unknown-linux-gnu
             env:
               CIBW_BUILD: "cp312-manylinux_*"
-              CIBW_ARCHS_LINUX: "x86_64 aarch64"
+              CIBW_ARCHS_LINUX: "x86_64"
               CIBW_MANYLINUX_X86_64: "manylinux_2_28"
-              CIBW_MANYLINUX_AARCH64: "manylinux_2_28"
-          - name: linux-musllinux
+
+          # x86_64 host, musllinux
+          - name: linux-x86-musllinux
             os: ubuntu-latest
-            targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
+            targets: x86_64-unknown-linux-musl
             env:
               CIBW_BUILD: "cp312-musllinux_*"
-              CIBW_ARCHS_LINUX: "x86_64 aarch64"
+              CIBW_ARCHS_LINUX: "x86_64"
               CIBW_MANYLINUX_X86_64: "musllinux_1_2"
+
+          # Arm64 host, manylinux
+          - name: linux-arm-manylinux
+            os: ubuntu-24.04-arm
+            targets: aarch64-unknown-linux-gnu
+            env:
+              CIBW_BUILD: "cp312-manylinux_*"
+              CIBW_ARCHS_LINUX: "aarch64"
+              CIBW_MANYLINUX_AARCH64: "manylinux_2_28"
+
+          # Arm64 host, musllinux
+          - name: linux-arm-musllinux
+            os: ubuntu-24.04-arm
+            targets: aarch64-unknown-linux-musl
+            env:
+              CIBW_BUILD: "cp312-musllinux_*"
+              CIBW_ARCHS_LINUX: "aarch64"
               CIBW_MANYLINUX_AARCH64: "musllinux_1_2"
+
+          # MacOS
           - name: macos
             os: macos-latest
             targets: x86_64-apple-darwin,aarch64-apple-darwin
             env:
               CIBW_ARCHS_MACOS: "x86_64 arm64"
+
+          # Windows
           - name: windows
             os: windows-latest
             targets: x86_64-pc-windows-msvc
             env:
               CIBW_ARCHS_WINDOWS: "AMD64"
+
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: "cp312-*"
-      CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_i686"
+      CIBW_SKIP: "pp* *-win32 *_i686"
       CIBW_TEST_COMMAND: "python -m unittest discover -s {project}/tests -t {project} -v"
     steps:
       - uses: actions/checkout@v4
