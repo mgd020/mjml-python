@@ -8,7 +8,7 @@ From [MRML](https://github.com/jolimail/mrml#why):
 
 > A Node.js server rendering an MJML template takes around 20 MB of RAM at startup and 130 MB under stress test. In Rust, less than 1.7 MB at startup and a bit less that 3 MB under stress test. The Rust version can also handle twice as many requests per second.
 
-All of that is without considering http transaction cost when using a  node service or process.
+All of that is without considering http transaction cost when using a node service or process.
 
 ## How
 
@@ -104,6 +104,20 @@ send_mail(
       "Ubuntu": "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700",
   }       
   ```
+
+## Why choose **mjml-python** instead of other MJML wrappers?
+
+- **Simple, Pythonic API** – a single `mjml2html()` function that takes plain keyword arguments and returns a clean HTML string. No need to construct parser/render option objects or work with custom result classes.
+
+- **Batteries-included defaults** – sensible defaults for fonts, comment handling, and include behavior, so most templates work with zero configuration.
+
+- **Flexible include loader** – pass a Python callable to handle `<mj-include>` however you like (filesystem, database, HTTP, etc.) without learning MRML’s multiple loader types.
+
+- **Minimal surface area** – intentionally focused on the common case: take MJML input → return production-ready HTML. No extra abstractions.
+
+- **Stable wheel builds** – lightweight ABI-3 wheels for all major platforms (CPython 3.7+), fast installation, and no compilation required on typical environments.
+
+In short: **mjml-python is ideal when you want a straightforward, Python-friendly way to render MJML without dealing with the full MRML configuration surface.**
 
 ## Development
 
