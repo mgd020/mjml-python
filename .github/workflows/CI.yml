@@ -95,41 +95,36 @@ jobs:
         path: dist/*
         retention-days: 1
   
-  test-release:
-    name: Test release
+  publish_testpypi:
+    name: ublish to test.pypi.org
     runs-on: ubuntu-latest
-    if: "!startsWith(github.ref, 'refs/tags/')"
+    if: >
+      github.event_name == 'release' && github.event.action == 'published' && github.event.release.prerelease == true
     needs: [ macos, windows, linux ]
+    permissions:
+      id-token: write
+    environment: testpypi
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
-      - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
-          MATURIN_NON_INTERACTIVE: true
-          MATURIN_REPOSITORY_URL: https://test.pypi.org/legacy/
+      - uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          command: upload
-          args: --skip-existing dist/*
+          repository-url: https://test.pypi.org/legacy/
 
-  release:
-    name: Release
+  publish_pypi:
+    name: Publish to pypi.org
     runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/')"
+    if: >
+      github.event_name == 'release' && github.event.action == 'published' && github.event.release.prerelease == false
     needs: [ macos, windows, linux ]
+    permissions:
+      id-token: write
+    environment: testpypi
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
-      - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-          MATURIN_NON_INTERACTIVE: true
-        with:
-          command: upload
-          args: --skip-existing dist/*
+      - uses: pypa/gh-action-pypi-publish@release/v1
