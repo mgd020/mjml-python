@@ -20,6 +20,8 @@ jobs:
         python -m unittest
 
   linux:
+    if: >
+      github.event_name == 'release' && github.event.action == 'published'
     needs: [ tests ]
     strategy:
       fail-fast: true
@@ -54,6 +56,8 @@ jobs:
         retention-days: 1
 
   windows:
+    if: >
+      github.event_name == 'release' && github.event.action == 'published'
     needs: [ tests ]
     runs-on: windows-latest
     steps:
@@ -72,6 +76,8 @@ jobs:
         retention-days: 1
 
   macos:
+    if: >
+      github.event_name == 'release' && github.event.action == 'published'
     needs: [ tests ]
     strategy:
       fail-fast: true
@@ -96,7 +102,7 @@ jobs:
         retention-days: 1
   
   publish_testpypi:
-    name: ublish to test.pypi.org
+    name: Publish to test.pypi.org
     runs-on: ubuntu-latest
     if: >
       github.event_name == 'release' && github.event.action == 'published' && github.event.release.prerelease == true
