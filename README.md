@@ -1,16 +1,26 @@
-# mjml-python
+# `mjml-python`
 
-Compile MJML at runtime without an external Node service/process. It is a Python wrapper for [MRML](https://github.com/jdrouet/mrml) (Rust port of [MJML](https://github.com/mjmlio/mjml)).
+Compile MJML at runtime **without** a Node.js service, external API, or subprocess.  
+`mjml-python` is a Python wrapper around the Rust MJML engine [MRML](https://github.com/jdrouet/mrml), a high-performance port of the official [MJML](https://github.com/mjmlio/mjml).
 
 ## Why
+
+Using MJML traditionally requires either:
+
+- running the Node.js-based MJML CLI as a subprocess, or
+- calling an external MJML API service.
+
+Both approaches add memory overhead, latency, operational complexity, and cost.
 
 From [MRML](https://github.com/jolimail/mrml#why):
 
 > A Node.js server rendering an MJML template takes around 20 MB of RAM at startup and 130 MB under stress test. In Rust, less than 1.7 MB at startup and a bit less that 3 MB under stress test. The Rust version can also handle twice as many requests per second.
 
-All of that is without considering http transaction cost when using a node service or process.
+This does **not** include the additional HTTP round-trip cost when using a Node service or the pricing of third-party API providers.
 
-## How
+By embedding the Rust engine directly, `mjml-python` avoids all external dependencies while retaining full MJML compatibility.
+
+## Installation
 
 Install from [PyPI](https://pypi.org/project/mjml-python/):
 
@@ -18,47 +28,50 @@ Install from [PyPI](https://pypi.org/project/mjml-python/):
 pip install mjml-python
 ```
 
-Import `mjml2html` and pass a string to compile: 
+## Usage
+
+Call `mjml2html()` with your MJML string:
 
 ```py
 from mjml import mjml2html
 
 html = mjml2html(
     '''
-    <mjml>
-      <mj-body>
-        <mj-section>
-          <mj-column>
-            <mj-image width="100px" src="/assets/img/logo-small.png"></mj-image>
-            <mj-divider border-color="#F45E43"></mj-divider>
-            <!-- Say hello to the user -->
-            <mj-text font-size="20px" color="#F45E43" font-family="Open Sans">Hello World</mj-text>
-          </mj-column>
-        </mj-section>
-         <mj-section>
-          <mj-column>
-            <mj-social font-size="15px" icon-size="30px" mode="horizontal">
-              <mj-social-element name="facebook" href="https://mjml.io/">
-                Facebook
-              </mj-social-element>
-              <mj-social-element name="google" href="https://mjml.io/">
-                Google
-              </mj-social-element>
-              <mj-social-element  name="twitter" href="https://mjml.io/">
-                Twitter
-              </mj-social-element>
-            </mj-social>
-          </mj-column>
-        </mj-section>
-      </mj-body>
-    </mjml>
+        <mjml>
+          <mj-body>
+            <mj-section>
+              <mj-column>
+                <mj-image width="100px" src="/assets/img/logo-small.png"></mj-image>
+                <mj-divider border-color="#F45E43"></mj-divider>
+                <!-- Say hello to the user -->
+                <mj-text font-size="20px" color="#F45E43" font-family="Open Sans">Hello World</mj-text>
+              </mj-column>
+            </mj-section>
+            <mj-section>
+              <mj-column>
+                <mj-social font-size="15px" icon-size="30px" mode="horizontal">
+                  <mj-social-element name="facebook" href="https://mjml.io/">
+                    Facebook
+                  </mj-social-element>
+                  <mj-social-element name="google" href="https://mjml.io/">
+                    Google
+                  </mj-social-element>
+                  <mj-social-element  name="twitter" href="https://mjml.io/">
+                    Twitter
+                  </mj-social-element>
+                </mj-social>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
     ''',
     disable_comments=True,
     social_icon_origin="https://example.com",
     fonts={
         "Open Sans": "https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700",
         "Ubuntu": "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700",
-    })
+    }
+)
 ```
 
 **Example using Django templates**
@@ -81,7 +94,7 @@ send_mail(
 )
 ```
 
-**Options**
+## Configuration Options
 
 `mjml-python` supports the following options:
 
@@ -92,20 +105,19 @@ send_mail(
 | `fonts`              | `dict[str, str] \| None`       | `None`        | Fonts imported in the HTML rendered by MJML.                                     |
 | `include_loader`     | `Callable[[str], str] \| None` | `None`        | Fetch the included template using the path attribute.                            |
 
-*Notes* :
+**Default fonts** (used when `fonts=None`):
 
-- When `fonts` option is set to `None`, the following default fonts will be used: 
-  ```py
-  {
-      "Open Sans": "https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700",
-      "Droid Sans": "https://fonts.googleapis.com/css?family=Droid+Sans:300,400,500,700",
-      "Lato": "https://fonts.googleapis.com/css?family=Lato:300,400,500,700",
-      "Roboto": "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700",
-      "Ubuntu": "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700",
-  }       
-  ```
+```py
+{
+    "Open Sans": "https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700",
+    "Droid Sans": "https://fonts.googleapis.com/css?family=Droid+Sans:300,400,500,700",
+    "Lato": "https://fonts.googleapis.com/css?family=Lato:300,400,500,700",
+    "Roboto": "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700",
+    "Ubuntu": "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700",
+}       
+```
 
-## Why choose **mjml-python** instead of other MJML wrappers?
+## Why choose `mjml-python` instead of other MJML packages?
 
 - **Simple, Pythonic API** – a single `mjml2html()` function that takes plain keyword arguments and returns a clean HTML string. No need to construct parser/render option objects or work with custom result classes.
 
@@ -115,9 +127,11 @@ send_mail(
 
 - **Minimal surface area** – intentionally focused on the common case: take MJML input → return production-ready HTML. No extra abstractions.
 
+- **No external services or subprocesses required** – rendering is performed entirely inside the Python extension using the embedded Rust MJML engine. No Node.js installation, MJML CLI, or HTTP API needed.
+
 - **Stable wheel builds** – lightweight ABI-3 wheels for all major platforms (CPython 3.7+), fast installation, and no compilation required on typical environments.
 
-In short: **mjml-python is ideal when you want a straightforward, Python-friendly way to render MJML without dealing with the full MRML configuration surface.**
+**In short:** `mjml-python` is ideal when you want a straightforward, Python-friendly way to render MJML without dealing with the full MRML configuration surface or external tooling.
 
 ## Development
 
