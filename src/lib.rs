@@ -13,7 +13,7 @@ struct CallbackIncludeLoader(pub Py<PyAny>);
 
 impl IncludeLoader for CallbackIncludeLoader {
     fn resolve(&self, path: &str) -> Result<String, IncludeLoaderError> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             self.0
                 .call1(py, (path,))
                 .and_then(|o| o.extract::<String>(py))
@@ -32,7 +32,7 @@ fn mjml2html(
     fonts: Option<HashMap<String, String>>,
     include_loader: Option<Py<PyAny>>,
 ) -> PyResult<String> {
-    py.allow_threads(|| {
+    py.detach(|| {
         let parse_opts = ParserOptions {
             include_loader: match include_loader {
                 None => Box::new(noop_loader::NoopIncludeLoader),
