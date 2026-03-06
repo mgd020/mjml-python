@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::io::ErrorKind;
 
 #[derive(Debug)]
-struct CallbackIncludeLoader(pub PyObject);
+struct CallbackIncludeLoader(pub Py<PyAny>);
 
 impl IncludeLoader for CallbackIncludeLoader {
     fn resolve(&self, path: &str) -> Result<String, IncludeLoaderError> {
@@ -30,7 +30,7 @@ fn mjml2html(
     disable_comments: bool,
     social_icon_origin: Option<String>,
     fonts: Option<HashMap<String, String>>,
-    include_loader: Option<PyObject>,
+    include_loader: Option<Py<PyAny>>,
 ) -> PyResult<String> {
     py.allow_threads(|| {
         let parse_opts = ParserOptions {
@@ -45,10 +45,7 @@ fn mjml2html(
 
         let fonts_map = match fonts {
             None => RenderOptions::default().fonts,
-            Some(item) => item
-                .into_iter()
-                .map(|(k, v)| (k, Cow::Owned(v)))
-                .collect(),
+            Some(item) => item.into_iter().map(|(k, v)| (k, Cow::Owned(v))).collect(),
         };
 
         let render_opts = RenderOptions {
