@@ -11,7 +11,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Run tests
       run: |
         set -euo pipefail
@@ -38,7 +38,7 @@ jobs:
             manylinux: musllinux_1_2
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Build wheels
       uses: PyO3/maturin-action@v1
       with:
@@ -49,7 +49,7 @@ jobs:
         container: ${{ matrix.platform.container }}
         args: --release -o dist --find-interpreter
     - name: Upload wheels
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: wheel-linux-${{ matrix.platform.target }}
         path: dist/*
@@ -59,7 +59,7 @@ jobs:
     needs: [ tests ]
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Build wheels
       uses: PyO3/maturin-action@v1
       with:
@@ -67,7 +67,7 @@ jobs:
         rust-toolchain: stable
         args: --release -o dist --find-interpreter
     - name: Upload wheels
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: wheel-windows
         path: dist/*
@@ -83,7 +83,7 @@ jobs:
           - x86_64-apple-darwin
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Build wheels
       uses: PyO3/maturin-action@v1
       with:
@@ -91,7 +91,7 @@ jobs:
         rust-toolchain: stable
         args: --release -o dist --find-interpreter --target ${{ matrix.target }}
     - name: Upload wheels
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: wheel-macos-${{ matrix.target }}
         path: dist/*
@@ -100,12 +100,14 @@ jobs:
   publish_testpypi:
     name: Publish to test.pypi.org
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'release' && github.event.action == 'published' && github.event.release.prerelease == true
     needs: [ macos, windows, linux ]
     permissions:
       id-token: write
     environment: testpypi
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: dist
           merge-multiple: true
@@ -123,7 +125,7 @@ jobs:
       id-token: write
     environment: pypi
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: dist
           merge-multiple: true
