@@ -9,11 +9,11 @@ use std::collections::HashMap;
 use std::io::ErrorKind;
 
 #[derive(Debug)]
-struct CallbackIncludeLoader(pub PyObject);
+struct CallbackIncludeLoader(pub Py<PyAny>);
 
 impl IncludeLoader for CallbackIncludeLoader {
     fn resolve(&self, path: &str) -> Result<String, IncludeLoaderError> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             self.0
                 .call1(py, (path,))
                 .and_then(|o| o.extract::<String>(py))
@@ -25,42 +25,36 @@ impl IncludeLoader for CallbackIncludeLoader {
 #[pyfunction]
 #[pyo3(signature = (input, *, disable_comments=false, social_icon_origin=None, fonts=None, include_loader=None))]
 fn mjml2html(
-    py: pyo3::Python<'_>,
     input: String,
     disable_comments: bool,
     social_icon_origin: Option<String>,
     fonts: Option<HashMap<String, String>>,
-    include_loader: Option<PyObject>,
+    include_loader: Option<Py<PyAny>>,
 ) -> PyResult<String> {
-    py.allow_threads(|| {
-        let parse_opts = ParserOptions {
-            include_loader: match include_loader {
-                None => Box::new(noop_loader::NoopIncludeLoader),
-                Some(item) => Box::new(CallbackIncludeLoader(item)),
-            },
-        };
+    let parse_opts = ParserOptions {
+        include_loader: match include_loader {
+            None => Box::new(noop_loader::NoopIncludeLoader),
+            Some(item) => Box::new(CallbackIncludeLoader(item)),
+        },
+    };
 
-        let root = mrml::parse_with_options(input, &parse_opts)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let root = mrml::parse_with_options(input, &parse_opts)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
-        let fonts_map = match fonts {
-            None => RenderOptions::default().fonts,
-            Some(item) => item
-                .into_iter()
-                .map(|(k, v)| (k, Cow::Owned(v)))
-                .collect(),
-        };
+    let fonts_map = match fonts {
+        None => RenderOptions::default().fonts,
+        Some(item) => item.into_iter().map(|(k, v)| (k, Cow::Owned(v))).collect(),
+    };
 
-        let render_opts = RenderOptions {
-            disable_comments,
-            social_icon_origin: social_icon_origin.map(Into::into),
-            fonts: fonts_map,
-        };
+    let render_opts = RenderOptions {
+        disable_comments,
+        social_icon_origin: social_icon_origin.map(Into::into),
+        fonts: fonts_map,
+    };
 
-        root.element
-            .render(&render_opts)
-            .map_err(|e| PyValueError::new_err(e.to_string()))
-    })
+    root.element
+        .render(&render_opts)
+        .map_err(|e| PyValueError::new_err(e.to_string()))
 }
 
 #[pymodule]
