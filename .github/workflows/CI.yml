@@ -3,9 +3,10 @@ permissions:
   contents: read
 
 on:
+  workflow_dispatch:
   pull_request:
   release:
-    types: [published]
+    types: [published, released]
 
 jobs:
   tests:
@@ -138,7 +139,9 @@ jobs:
     name: Publish to pypi.org
     runs-on: ubuntu-latest
     if: >
-      github.event_name == 'release' && github.event.action == 'published' && github.event.release.prerelease == false
+      github.event_name == 'release' &&
+      (github.event.action == 'published' || github.event.action == 'released') &&
+      github.event.release.prerelease == false
     needs: [ macos, windows, linux, sdist ]
     permissions:
       id-token: write
