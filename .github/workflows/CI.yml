@@ -96,13 +96,31 @@ jobs:
         name: wheel-macos-${{ matrix.target }}
         path: dist/*
         retention-days: 1
+
+  sdist:
+    needs: [ tests ]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - name: Build source distribution
+      uses: PyO3/maturin-action@v1
+      with:
+        command: sdist
+        rust-toolchain: stable
+        args: -o dist
+    - name: Upload source distribution
+      uses: actions/upload-artifact@v6
+      with:
+        name: sdist
+        path: dist/*
+        retention-days: 1
   
   publish_testpypi:
     name: Publish to test.pypi.org
     runs-on: ubuntu-latest
     if: >
       github.event_name == 'release' && github.event.action == 'published' && github.event.release.prerelease == true
-    needs: [ macos, windows, linux ]
+    needs: [ macos, windows, linux, sdist ]
     permissions:
       id-token: write
     environment: testpypi
@@ -120,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       github.event_name == 'release' && github.event.action == 'published' && github.event.release.prerelease == false
-    needs: [ macos, windows, linux ]
+    needs: [ macos, windows, linux, sdist ]
     permissions:
       id-token: write
     environment: pypi
