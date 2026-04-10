@@ -1,4 +1,6 @@
 name: Build Wheels
+permissions:
+  contents: read
 
 on:
   workflow_call:
