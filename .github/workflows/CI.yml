@@ -1,79 +1,11 @@
 name: CI
-permissions:
-  contents: read
 
 on:
   workflow_dispatch:
   pull_request:
 
 jobs:
-  tests:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v5
-    - name: Run tests
-      run: |
-        set -euo pipefail
-        python3 -m venv env
-        source env/bin/activate
-        pip install -r requirements.txt
-        maturin develop
-        python -m unittest
-
-  linux:
-    needs: [ tests ]
-    strategy:
-      fail-fast: true
-      matrix:
-        platform:
-          - target: x86_64
-            manylinux: auto
-          - target: aarch64
-            manylinux: auto
-          - target: x86_64-unknown-linux-musl
-            manylinux: musllinux_1_2
-            container: quay.io/pypa/musllinux_1_2_x86_64
-          - target: aarch64-unknown-linux-musl
-            manylinux: musllinux_1_2
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v5
-    - name: Build wheels
-      uses: PyO3/maturin-action@v1
-      with:
-        command: build
-        rust-toolchain: stable
-        manylinux: ${{ matrix.platform.manylinux }}
-        target: ${{ matrix.platform.target }}
-        container: ${{ matrix.platform.container }}
-        args: --release -o dist --find-interpreter
-
-  windows:
-    needs: [ tests ]
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v5
-    - name: Build wheels
-      uses: PyO3/maturin-action@v1
-      with:
-        command: build
-        rust-toolchain: stable
-        args: --release -o dist --find-interpreter
-
-  macos:
-    needs: [ tests ]
-    strategy:
-      fail-fast: true
-      matrix:
-        target:
-          - aarch64-apple-darwin
-          - x86_64-apple-darwin
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v5
-    - name: Build wheels
-      uses: PyO3/maturin-action@v1
-      with:
-        command: build
-        rust-toolchain: stable
-        args: --release -o dist --find-interpreter --target ${{ matrix.target }}
+  build:
+    uses: ./.github/workflows/_build-wheels.yml
+    with:
+      upload_artifacts: false
