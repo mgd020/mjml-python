@@ -1,5 +1,5 @@
 name: CI
-permissions:
+permissions: {}
 
 on:
   workflow_dispatch:
