@@ -142,7 +142,7 @@ nix-shell
 With Python 3.8+, uv, Rust 1.83+ and Cargo installed:
 
 ```sh
-uv sync --locked
-uv run --locked maturin develop
-uv run --locked python -m unittest
+uv sync --locked --no-install-project
+uv run --locked --no-sync maturin develop
+uv run --locked --no-sync python -m unittest
 ```

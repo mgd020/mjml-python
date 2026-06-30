@@ -13,7 +13,7 @@ pkgs.mkShell {
     ] ++ lib.optional stdenv.isDarwin libiconv;
     shellHook = ''
         unset VIRTUAL_ENV
-        uv sync --locked
-        uv run --locked maturin develop
+        uv sync --locked --no-install-project
+        uv run --locked --no-sync maturin develop
     '';
 }
