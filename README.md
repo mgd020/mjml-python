@@ -127,7 +127,7 @@ send_mail(
 
 - **No external services or subprocesses required** – rendering is performed entirely inside the Python extension using the embedded Rust MJML engine. No Node.js installation, MJML CLI, or HTTP API needed.
 
-- **Stable wheel builds** – lightweight ABI-3 wheels for all major platforms (CPython 3.7+), fast installation, and no compilation required on typical environments.
+- **Stable wheel builds** – lightweight ABI-3 wheels for all major platforms (CPython 3.8+), fast installation, and no compilation required on typical environments.
 
 **In short:** `mjml-python` is ideal when you want a straightforward, Python-friendly way to render MJML without dealing with the full MRML configuration surface or external tooling.
 
@@ -139,12 +139,10 @@ With [Nix](https://nixos.org/):
 nix-shell
 ```
 
-With Python 3.7+, Rust and Cargo installed:
+With Python 3.8+, uv, Rust 1.83+ and Cargo installed:
 
 ```sh
-python3 -m venv env
-source env/bin/activate
-pip install -r requirements.txt
-maturin develop
-python -m unittest
+uv sync --locked
+uv run --locked maturin develop
+uv run --locked python -m unittest
 ```
