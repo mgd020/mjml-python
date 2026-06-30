@@ -15,6 +15,12 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
     "License :: OSI Approved :: MIT License",
 ]
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "maturin>=1.8.3,<2",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/mgd020/mjml-python"
