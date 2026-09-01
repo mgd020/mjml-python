@@ -1,4 +1,5 @@
 import unittest
+
 from mjml import mjml2html
 
 
@@ -171,3 +172,26 @@ class TestIncludeLoader(unittest.TestCase):
             result,
             r"<style type=\"text/css\">.some-class { font-family: monospace }</style>",
         )
+
+    def test_include_at_root(self):
+        strings = {
+            "body.mjml": """
+                <mj-body>
+                    <mj-section>
+                        <mj-column>
+                            <mj-text>Hello from the root include</mj-text>
+                        </mj-column>
+                    </mj-section>
+                </mj-body>
+            """
+        }
+        result = mjml2html(
+            """
+            <mjml>
+                <mj-include path="body.mjml" />
+            </mjml>
+            """,
+            include_loader=strings.__getitem__,
+        )
+        self.assertRegex(result, r"^<!doctype html>")
+        self.assertRegex(result, r">Hello from the root include<")
