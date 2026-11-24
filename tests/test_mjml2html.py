@@ -1,3 +1,6 @@
+import sys
+import threading
+import time
 import unittest
 
 from mjml import mjml2html
@@ -195,3 +198,39 @@ class TestIncludeLoader(unittest.TestCase):
         )
         self.assertRegex(result, r"^<!doctype html>")
         self.assertRegex(result, r">Hello from the root include<")
+
+
+class TestReleasesGil(unittest.TestCase):
+    def test_other_threads_run_during_compile(self):
+        section = (
+            "<mj-section><mj-column><mj-text>Row</mj-text></mj-column></mj-section>"
+        )
+        doc = "<mjml><mj-body>" + section * 2_000 + "</mj-body></mjml>"
+
+        ticks = 0
+        stop = False
+
+        def spin():
+            nonlocal ticks
+            while not stop:
+                ticks += 1
+                time.sleep(0)  # hands the GIL back on every iteration
+
+        thread = threading.Thread(target=spin, daemon=True)
+        old_interval = sys.getswitchinterval()
+        # With no forced switches, the spinner can only run during the call
+        # if mjml2html itself releases the GIL.
+        sys.setswitchinterval(100)
+        try:
+            thread.start()
+            while ticks == 0:
+                time.sleep(0.001)
+            before = ticks
+            mjml2html(doc)
+            ran = ticks - before
+        finally:
+            stop = True
+            thread.join()
+            sys.setswitchinterval(old_interval)
+
+        self.assertGreater(ran, 0, "mjml2html did not release the GIL")
