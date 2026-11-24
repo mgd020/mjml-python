@@ -234,3 +234,22 @@ class TestReleasesGil(unittest.TestCase):
             sys.setswitchinterval(old_interval)
 
         self.assertGreater(ran, 0, "mjml2html did not release the GIL")
+
+
+class TestInlineStyle(unittest.TestCase):
+    def test_mj_style_inline_is_inlined(self):
+        result = mjml2html(
+            """
+            <mjml>
+              <mj-head>
+                <mj-style inline="inline">.alert { color: red; }</mj-style>
+              </mj-head>
+              <mj-body>
+                <mj-section><mj-column>
+                  <mj-text><span class="alert">Payment failed</span></mj-text>
+                </mj-column></mj-section>
+              </mj-body>
+            </mjml>
+            """
+        )
+        self.assertIn('<span class="alert" style="color: red;">', result)
