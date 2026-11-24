@@ -2,8 +2,9 @@ import sys
 import threading
 import time
 import unittest
+import warnings
 
-from mjml import mjml2html
+from mjml import MjmlWarning, mjml2html, parse
 
 
 class TestSimple(unittest.TestCase):
@@ -253,3 +254,106 @@ class TestInlineStyle(unittest.TestCase):
             """
         )
         self.assertIn('<span class="alert" style="color: red;">', result)
+
+
+class TestParse(unittest.TestCase):
+    string = """
+        <mjml lnag="fr">
+          <mj-head>
+            <mj-title>Your order has shipped</mj-title>
+            <mj-preview>Arriving on Thursday</mj-preview>
+          </mj-head>
+          <mj-body>
+            <mj-section><mj-column>
+              <!-- a comment -->
+              <mj-text>Bonjour</mj-text>
+            </mj-column></mj-section>
+          </mj-body>
+        </mjml>
+    """
+
+    def test_title_and_preview(self):
+        parsed = parse(self.string)
+        self.assertEqual(parsed.title, "Your order has shipped")
+        self.assertEqual(parsed.preview, "Arriving on Thursday")
+
+    def test_no_title_or_preview(self):
+        parsed = parse("<mjml><mj-body></mj-body></mjml>")
+        self.assertIsNone(parsed.title)
+        self.assertIsNone(parsed.preview)
+        self.assertEqual(parsed.warnings, [])
+
+    def test_warnings(self):
+        (warning,) = parse(self.string).warnings
+        self.assertIsInstance(warning, MjmlWarning)
+        self.assertEqual(warning.kind, "unexpected-attribute")
+        self.assertIsNone(warning.origin)
+        self.assertEqual(self.string[warning.start : warning.end], 'lnag="fr"')
+
+    def test_warning_origin_is_include_path(self):
+        strings = {"head.mjml": '<mj-head><mj-style foo="bar">a{}</mj-style></mj-head>'}
+        parsed = parse(
+            '<mjml><mj-include path="head.mjml" /><mj-body></mj-body></mjml>',
+            include_loader=strings.__getitem__,
+        )
+        self.assertEqual([w.origin for w in parsed.warnings], ["head.mjml"])
+
+    def test_render_matches_mjml2html(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", MjmlWarning)
+            expected = mjml2html(self.string)
+        self.assertEqual(parse(self.string).render(), expected)
+
+    def test_render_options(self):
+        parsed = parse(self.string)
+        self.assertIn("a comment", parsed.render())
+        self.assertNotIn("a comment", parsed.render(disable_comments=True))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", MjmlWarning)
+            expected = mjml2html(self.string, disable_comments=True)
+        self.assertEqual(parsed.render(disable_comments=True), expected)
+
+    def test_render_many_times(self):
+        parsed = parse(self.string)
+        self.assertEqual(parsed.render(), parsed.render())
+
+    def test_bad(self):
+        with self.assertRaises(ValueError):
+            parse("<mj-text>Hello World</mj-text>")
+
+
+class TestWarnings(unittest.TestCase):
+    bad = '<mjml lnag="fr"><mj-body></mj-body></mjml>'
+
+    def test_mjml2html_warns(self):
+        with self.assertWarnsRegex(MjmlWarning, r"unexpected-attribute at 6:15 in root"):
+            result = mjml2html(self.bad)
+        self.assertRegex(result, r"^<!doctype html>")
+
+    def test_emitted_warning_has_attributes(self):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            mjml2html(self.bad)
+        (w,) = caught
+        self.assertIs(w.category, MjmlWarning)
+        self.assertEqual(w.message.kind, "unexpected-attribute")
+        self.assertEqual(self.bad[w.message.start : w.message.end], 'lnag="fr"')
+
+    def test_warning_is_user_warning(self):
+        self.assertTrue(issubclass(MjmlWarning, UserWarning))
+
+    def test_warning_can_be_error(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", MjmlWarning)
+            with self.assertRaises(MjmlWarning):
+                mjml2html(self.bad)
+
+    def test_no_warning_when_clean(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            mjml2html("<mjml><mj-body></mj-body></mjml>")
+
+    def test_parse_does_not_warn(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            parse(self.bad)

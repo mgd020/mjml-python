@@ -72,6 +72,31 @@ html = mjml2html(
 )
 ```
 
+**Warnings**
+
+`mjml2html()` reports problems MRML finds while parsing (for example a misspelt attribute) through Python's `warnings` module as `mjml.MjmlWarning`, a `UserWarning` subclass. To fail on them:
+
+```py
+import warnings
+from mjml import MjmlWarning
+
+warnings.simplefilter("error", MjmlWarning)
+```
+
+**Inspecting a template before rendering**
+
+`parse()` returns a parsed template exposing the `<mj-title>`, `<mj-preview>` and any warnings MRML recorded while parsing (for example a misspelt attribute). Call `render()` on it to get the HTML; `render()` takes the same `disable_comments`, `social_icon_origin` and `fonts` options as `mjml2html()`.
+
+```py
+from mjml import parse
+
+template = parse('<mjml lnag="fr"><mj-head><mj-title>Shipped</mj-title></mj-head><mj-body></mj-body></mjml>')
+template.title     # "Shipped"
+template.preview   # None
+template.warnings  # [MjmlWarning("unexpected-attribute at 6:15 in root template")]
+html = template.render(disable_comments=True)
+```
+
 **Example using Django templates**
 
 ```py
