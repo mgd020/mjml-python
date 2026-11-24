@@ -17,7 +17,7 @@ def mjml2html(
     - input: The input MJML string
     - disable_comments: Strip comments out of rendered HTML
     - social_icon_origin: Custom URL origin for social icons. Icon name is appended
-        (e.g. `facebook.png`).
+        (e.g. `facebook.png`) as-is, so include a trailing slash.
     - fonts: Fonts imported in the HTML rendered by MJML.
     - include_loader: Fetch the included template using the path attribute.
 
@@ -71,7 +71,7 @@ class Mjml:
         Params:
         - disable_comments: Strip comments out of rendered HTML
         - social_icon_origin: Custom URL origin for social icons. Icon name is appended
-            (e.g. `facebook.png`).
+            (e.g. `facebook.png`) as-is, so include a trailing slash.
         - fonts: Fonts imported in the HTML rendered by MJML.
         """
 
