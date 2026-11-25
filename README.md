@@ -16,7 +16,7 @@ From [MRML](https://github.com/jolimail/mrml#why):
 
 > A Node.js server rendering an MJML template takes around 20 MB of RAM at startup and 130 MB under stress test. In Rust, less than 1.7 MB at startup and a bit less that 3 MB under stress test. The Rust version can also handle twice as many requests per second.
 
-By embedding the Rust engine directly, `mjml-python` avoids all external dependencies while retaining full MJML compatibility.
+By embedding the Rust engine directly, `mjml-python` avoids all external dependencies while staying compatible with most of MJML (see [Known limitations](#known-limitations)).
 
 ## Installation
 
@@ -64,12 +64,51 @@ html = mjml2html(
         </mjml>
     ''',
     disable_comments=True,
-    social_icon_origin="https://example.com",
+    social_icon_origin="https://example.com/",
     fonts={
         "Open Sans": "https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700",
         "Ubuntu": "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700",
     }
 )
+```
+
+**Warnings**
+
+`mjml2html()` reports problems MRML finds while parsing (for example a misspelt attribute) through Python's `warnings` module as `mjml.MjmlWarning`, a `UserWarning` subclass. To fail on them:
+
+```py
+import warnings
+from mjml import MjmlWarning
+
+warnings.simplefilter("error", MjmlWarning)
+```
+
+**Errors**
+
+A template that cannot be parsed or rendered raises `mjml.MjmlError`, a `ValueError` subclass. It has `kind` (e.g. `"unexpected-token"`; see `mjml.pyi` for all of them), `origin` (the include path, or `None` for the root template) and `start`/`end`, character offsets into that template's source (so `source[start:end]` works), or `None` when MRML reports no location. If an `include_loader` callback raises, the `MjmlError` has `kind == "include-loader-error"`, the failing include's `path`, and the callback's exception as `__cause__`.
+
+```py
+from mjml import MjmlError, mjml2html
+
+src = "<mj-text>Hello</mj-text>"
+try:
+    mjml2html(src)
+except MjmlError as e:
+    e.kind, e.origin, e.start, e.end  # ("unexpected-token", None, 0, 8)
+```
+
+**Inspecting a template before rendering**
+
+`parse()` returns a parsed template exposing the `<mj-title>`, `<mj-preview>` and any warnings MRML recorded while parsing (for example a misspelt attribute). Call `render()` on it to get the HTML; `render()` takes the same `disable_comments`, `social_icon_origin` and `fonts` options as `mjml2html()`.
+
+```py
+from mjml import parse
+
+template = parse('<mjml lnag="fr"><mj-head><mj-title>Shipped</mj-title></mj-head><mj-body></mj-body></mjml>')
+template.title     # "Shipped"
+template.preview   # None
+template.warnings  # [MjmlWarning("unexpected-attribute at 6:15 in root template")]
+html = template.render(disable_comments=True)
 ```
 
 **Example using Django templates**
@@ -99,9 +138,9 @@ send_mail(
 | Name                 | Type                           | Default value | Comment                                                                          |
 |----------------------|--------------------------------|---------------|----------------------------------------------------------------------------------|
 | `disable_comments`   | `bool`                         | `False`       | Strip comments out of rendered HTML                                              |
-| `social_icon_origin` | `str \| None`                  | `None`        | Custom URL origin for social icons. Icon name is appended (e.g. `facebook.png`). |
+| `social_icon_origin` | `str \| None`                  | `None`        | Custom URL origin for social icons. Icon name is appended as-is (e.g. `facebook.png`), so include a trailing slash. |
 | `fonts`              | `dict[str, str] \| None`       | `None`        | Fonts imported in the HTML rendered by MJML.                                     |
-| `include_loader`     | `Callable[[str], str] \| None` | `None`        | Fetch the included template using the path attribute.                            |
+| `include_loader`     | `Callable[[str], str] \| None` | `None`        | Fetch the included template using the path attribute. If it raises, `MjmlError` is raised with the original as `__cause__`. |
 
 **Default fonts** (used when `fonts=None`):
 
@@ -114,6 +153,16 @@ send_mail(
     "Ubuntu": "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700",
 }       
 ```
+
+## Known limitations
+
+`mjml-python` renders with [MRML](https://github.com/jdrouet/mrml), which covers most of MJML but not all of it. Differences to be aware of:
+
+- `mj-html-attributes` and `mj-selector` are not supported; a template using them fails to compile with a `ValueError`.
+- `<mj-raw position="file-start">` placed directly under `<mjml>` fails to parse.
+- There is no equivalent of MJML's `validationLevel`. Unknown tags such as `<mj-txet>` are copied into the output, and unknown attributes are dropped. MRML only reports a limited set of mistakes (e.g. an unexpected attribute on `<mjml>`), and `mjml-python` surfaces those as `MjmlWarning`.
+- There are no `minify` or `beautify` options.
+- MRML 6.0.1 is tested against MJML 4.18 output. Alignment with MJML 5 is not released yet.
 
 ## Why choose `mjml-python` instead of other MJML packages?
 
