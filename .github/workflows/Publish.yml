@@ -49,7 +49,7 @@ jobs:
   publish_pypi:
     name: Publish to pypi.org
     runs-on: ubuntu-latest
-    needs: [ build, sdist ]
+    needs: [ build, sdist, publish_testpypi ]
     permissions:
       id-token: write
     environment: pypi
