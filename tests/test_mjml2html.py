@@ -4,7 +4,7 @@ import time
 import unittest
 import warnings
 
-from mjml import MjmlWarning, mjml2html, parse
+from mjml import MjmlError, MjmlWarning, mjml2html, parse
 
 
 class TestSimple(unittest.TestCase):
@@ -149,9 +149,79 @@ class TestIncludeLoader(unittest.TestCase):
 
     def test_missing(self):
         strings = {}
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(MjmlError) as ctx:
             mjml2html(self.outer_string, include_loader=strings.__getitem__)
-        self.assertIn("unable to load included template", str(ctx.exception))
+        e = ctx.exception
+        self.assertEqual(e.kind, "include-loader-error")
+        self.assertEqual(e.path, "inner.mjml")
+        self.assertIsNone(e.origin)
+        self.assertEqual(self.outer_string[e.start : e.end], "mj-include")
+        self.assertIn('"inner.mjml"', str(e))
+        self.assertIsInstance(e.__cause__, KeyError)
+        self.assertEqual(e.__cause__.args, ("inner.mjml",))
+
+    def test_loader_exception_is_the_cause(self):
+        class LoaderError(Exception):
+            pass
+
+        error = LoaderError("database is down")
+
+        def loader(path):
+            raise error
+
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html(self.outer_string, include_loader=loader)
+        self.assertIs(ctx.exception.__cause__, error)
+        with self.assertRaises(MjmlError) as ctx:
+            parse(self.outer_string, include_loader=loader)
+        self.assertIs(ctx.exception.__cause__, error)
+
+    def test_loader_failure_on_later_include(self):
+        strings = {"inner.mjml": self.inner_string}
+
+        def loader(path):
+            if path not in strings:
+                raise FileNotFoundError(f"no partial named {path!r}")
+            return strings[path]
+
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html(self.outer_string, include_loader=loader)
+        e = ctx.exception
+        self.assertEqual(e.path, "text.mjml")
+        self.assertIn('"text.mjml"', str(e))
+        self.assertIsInstance(e.__cause__, FileNotFoundError)
+
+    def test_failed_include_inside_include(self):
+        strings = {"outer.mjml": '<mj-attributes><mj-include path="deep.mjml" /></mj-attributes>'}
+        src = '<mjml><mj-head><mj-include path="outer.mjml" /></mj-head><mj-body></mj-body></mjml>'
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html(src, include_loader=strings.__getitem__)
+        e = ctx.exception
+        self.assertEqual(e.path, "deep.mjml")
+        self.assertIsInstance(e.__cause__, KeyError)
+
+    def test_loader_returns_non_str(self):
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html(self.outer_string, include_loader=lambda path: 123)
+        self.assertIsInstance(ctx.exception.__cause__, TypeError)
+
+    def test_loader_not_callable(self):
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html(self.outer_string, include_loader="not callable")
+        self.assertIsInstance(ctx.exception.__cause__, TypeError)
+
+    def test_keyboard_interrupt_is_not_wrapped(self):
+        def loader(path):
+            raise KeyboardInterrupt
+
+        with self.assertRaises(KeyboardInterrupt):
+            mjml2html(self.outer_string, include_loader=loader)
+
+    def test_template_error_in_include_is_mjml_error(self):
+        with self.assertRaises(MjmlError):
+            mjml2html(
+                self.outer_string, include_loader=lambda path: "<mj-text><oops"
+            )
 
     def test_head_attributes(self):
         strings = {"inner.mjml": self.inner_string, "text.mjml": self.text_string}
@@ -290,6 +360,11 @@ class TestParse(unittest.TestCase):
         self.assertIsNone(warning.origin)
         self.assertEqual(self.string[warning.start : warning.end], 'lnag="fr"')
 
+    def test_warning_offset_is_in_characters(self):
+        src = '<mjml><mj-head><!-- éé --><mj-style foo="bar">a{}</mj-style></mj-head><mj-body></mj-body></mjml>'
+        (warning,) = parse(src).warnings
+        self.assertEqual(src[warning.start : warning.end], 'foo="bar"')
+
     def test_warning_origin_is_include_path(self):
         strings = {"head.mjml": '<mj-head><mj-style foo="bar">a{}</mj-style></mj-head>'}
         parsed = parse(
@@ -357,3 +432,103 @@ class TestWarnings(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             parse(self.bad)
+
+
+class TestErrors(unittest.TestCase):
+    def test_is_value_error(self):
+        self.assertTrue(issubclass(MjmlError, ValueError))
+
+    def test_unexpected_token_has_location(self):
+        src = "<mj-text>Hello World</mj-text>"
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html(src)
+        e = ctx.exception
+        self.assertEqual(e.kind, "unexpected-token")
+        self.assertIsNone(e.origin)
+        self.assertEqual((e.start, e.end), (0, 8))
+        self.assertIn("unexpected token", str(e))
+
+    def test_error_without_span(self):
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html("<mjml><mj-body><mj-section>")
+        e = ctx.exception
+        self.assertEqual(e.kind, "end-of-stream")
+        self.assertIsNone(e.origin)
+        self.assertIsNone(e.start)
+        self.assertIsNone(e.end)
+
+    def test_error_in_include_has_origin(self):
+        src = '<mjml><mj-head><mj-include path="a.mjml" /></mj-head><mj-body></mj-body></mjml>'
+        included = "<mj-text><oops"
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html(src, include_loader=lambda path: included)
+        e = ctx.exception
+        self.assertEqual(e.origin, "a.mjml")
+        # The span is an offset into the included template's own source.
+        self.assertEqual(included[e.start : e.end], "mj-text")
+
+    def test_parse_raises_mjml_error(self):
+        with self.assertRaises(MjmlError):
+            parse("<mj-text>Hello World</mj-text>")
+
+    def test_parser_error_has_offset(self):
+        src = "<mjml>\n<mj-body>\n  <mj-text a=>x</mj-text></mj-body></mjml>"
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html(src)
+        e = ctx.exception
+        self.assertEqual(e.kind, "parser-error")
+        self.assertIsNone(e.origin)
+        # Where the parser gave up: the space before the bad attribute (3:11).
+        self.assertEqual(e.start, e.end)
+        self.assertEqual(src[e.start :], " a=>x</mj-text></mj-body></mjml>")
+        self.assertIn("invalid attribute at 3:11", str(e))
+
+    def test_parser_error_offset_is_in_characters(self):
+        src = "<mjml><mj-body><!-- éé --><mj-text a=>x</mj-text></mj-body></mjml>"
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html(src)
+        self.assertEqual(src[ctx.exception.start :], " a=>x</mj-text></mj-body></mjml>")
+
+    def test_span_offset_is_in_characters(self):
+        src = "<mjml><mj-body><!-- éé --></mj-section></mj-body></mjml>"
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html(src)
+        e = ctx.exception
+        # The span covers a whole token, so it only slices cleanly if the
+        # offsets count characters, not bytes.
+        self.assertEqual(src[e.start : e.end], "</mj-body>")
+
+    def test_parser_error_in_include_has_no_offset(self):
+        # MRML reports parser positions in includes relative to an internal
+        # wrapper, so they are not exposed.
+        src = '<mjml><mj-head><mj-include path="a.mjml" /></mj-head><mj-body></mj-body></mjml>'
+        included = "<mj-attributes>\n <mj-text a=></mj-attributes>"
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html(src, include_loader=lambda path: included)
+        e = ctx.exception
+        self.assertEqual(e.kind, "parser-error")
+        self.assertEqual(e.origin, "a.mjml")
+        self.assertIsNone(e.start)
+        self.assertIsNone(e.end)
+        self.assertNotIn("invalid attribute at", str(e))
+
+    def test_empty_input(self):
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html("")
+        self.assertEqual(ctx.exception.kind, "no-root-node")
+
+    def test_loader_exception_is_wrapped_and_still_a_value_error(self):
+        src = '<mjml><mj-head><mj-include path="a.mjml" /></mj-head><mj-body></mj-body></mjml>'
+
+        def loader(path):
+            raise ValueError("from loader")
+
+        with self.assertRaises(ValueError) as ctx:
+            mjml2html(src, include_loader=loader)
+        self.assertIsInstance(ctx.exception, MjmlError)
+        self.assertEqual(str(ctx.exception.__cause__), "from loader")
+
+    def test_path_is_none_for_other_errors(self):
+        with self.assertRaises(MjmlError) as ctx:
+            mjml2html("<mj-text>Hello World</mj-text>")
+        self.assertIsNone(ctx.exception.path)

@@ -83,6 +83,20 @@ from mjml import MjmlWarning
 warnings.simplefilter("error", MjmlWarning)
 ```
 
+**Errors**
+
+A template that cannot be parsed or rendered raises `mjml.MjmlError`, a `ValueError` subclass. It has `kind` (e.g. `"unexpected-token"`; see `mjml.pyi` for all of them), `origin` (the include path, or `None` for the root template) and `start`/`end`, character offsets into that template's source (so `source[start:end]` works), or `None` when MRML reports no location. If an `include_loader` callback raises, the `MjmlError` has `kind == "include-loader-error"`, the failing include's `path`, and the callback's exception as `__cause__`.
+
+```py
+from mjml import MjmlError, mjml2html
+
+src = "<mj-text>Hello</mj-text>"
+try:
+    mjml2html(src)
+except MjmlError as e:
+    e.kind, e.origin, e.start, e.end  # ("unexpected-token", None, 0, 8)
+```
+
 **Inspecting a template before rendering**
 
 `parse()` returns a parsed template exposing the `<mj-title>`, `<mj-preview>` and any warnings MRML recorded while parsing (for example a misspelt attribute). Call `render()` on it to get the HTML; `render()` takes the same `disable_comments`, `social_icon_origin` and `fonts` options as `mjml2html()`.
@@ -126,7 +140,7 @@ send_mail(
 | `disable_comments`   | `bool`                         | `False`       | Strip comments out of rendered HTML                                              |
 | `social_icon_origin` | `str \| None`                  | `None`        | Custom URL origin for social icons. Icon name is appended as-is (e.g. `facebook.png`), so include a trailing slash. |
 | `fonts`              | `dict[str, str] \| None`       | `None`        | Fonts imported in the HTML rendered by MJML.                                     |
-| `include_loader`     | `Callable[[str], str] \| None` | `None`        | Fetch the included template using the path attribute.                            |
+| `include_loader`     | `Callable[[str], str] \| None` | `None`        | Fetch the included template using the path attribute. If it raises, `MjmlError` is raised with the original as `__cause__`. |
 
 **Default fonts** (used when `fonts=None`):
 
